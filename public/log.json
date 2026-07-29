@@ -1,0 +1,8 @@
+[
+  { "type": "program_started", "var_name": "", "value": "" },
+  { "type": "variable_created", "var_name": "a", "value": "5" },
+  { "type": "variable_created", "var_name": "b", "value": "10" },
+  { "type": "variable_updated", "var_name": "a", "value": "10" },
+  { "type": "variable_updated", "var_name": "b", "value": "5" },
+  { "type": "program_finished", "var_name": "", "value": "" }
+]
