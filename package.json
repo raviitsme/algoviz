@@ -11,13 +11,18 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^12.40.0",
+    "framer-motion": "^12.43.0",
     "lucide-react": "^1.21.0",
+    "monaco-languageclient": "^10.7.0",
     "next": "16.2.9",
     "postcss": "^8.5.15",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
+    "vscode-jsonrpc": "^9.0.1",
+    "vscode-languageclient": "^10.1.0",
+    "vscode-languageserver-protocol": "^3.18.2",
+    "vscode-ws-jsonrpc": "^3.5.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -27,6 +32,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "monaco-editor": "^0.56.0",
     "tailwindcss": "^4.3.1",
     "typescript": "^5"
   }

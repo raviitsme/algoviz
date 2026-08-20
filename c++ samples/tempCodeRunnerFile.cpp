@@ -1,6 +1,5 @@
 #include <iostream>
 
-
 #if __has_include(<version>)
     #include <version>
 #endif
