@@ -1,18 +1,19 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { Sparkles, Code2, BarChart3 } from "lucide-react";
+import { BarChart3, Code2, RotateCcw } from "lucide-react";
 import Sidebar from "../components/UI/Sidebar";
 import VisualizerCanvas from "../components/Visualizer/VisualizerCanvas";
 import Controls from "../components/Visualizer/Controls";
 import { AnimationStep } from "../types/visualizer";
 import generateBubbleSortSteps from "../lib/algorithms/bubbleSort";
 
+// Dynamic Import for Monaco Editor with Isolated Container
 const CodeEditor = dynamic(() => import("../components/CodeEditor"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full min-h-100 rounded-xl bg-[#080811] border border-white/10 flex items-center justify-center text-slate-400 font-mono text-xs">
+    <div className="w-full h-full min-h-75 rounded-xl bg-[#080811] border border-white/10 flex items-center justify-center text-slate-400 font-mono text-xs">
       <span className="flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
         Loading Monaco Editor...
@@ -23,7 +24,8 @@ const CodeEditor = dynamic(() => import("../components/CodeEditor"), {
 
 const DEFAULT_ARRAY = [45, 12, 88, 34, 67, 23, 90, 11, 56];
 
-const BUBBLE_SORT_CODE = `void bubbleSort(int arr[], int n) {
+const ALGORITHM_CODES: Record<string, string> = {
+  bubbleSort: `void bubbleSort(int arr[], int n) {
     for (int i = 0; i < n - 1; i++) {
         for (int j = 0; j < n - i - 1; j++) {
             if (arr[j] > arr[j + 1]) {
@@ -31,52 +33,79 @@ const BUBBLE_SORT_CODE = `void bubbleSort(int arr[], int n) {
             }
         }
     }
-}`;
+}`,
+};
 
 export default function PlaygroundPage() {
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string | null>(
+    null,
+  );
   const [array, setArray] = useState<number[]>(DEFAULT_ARRAY);
-  const [steps, setSteps] = useState<AnimationStep[]>([]);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(250);
-  const [code, setCode] = useState<string>(BUBBLE_SORT_CODE);
+  const [code, setCode] = useState<string>(
+    "// Select an algorithm from the sidebar to begin...",
+  );
 
-  // Re-generate step snapshots whenever the array changes
+  // Memoized step snapshots
+  const steps: AnimationStep[] = useMemo(() => {
+    if (selectedAlgorithm === "bubbleSort") {
+      return generateBubbleSortSteps(array);
+    }
+    return [];
+  }, [selectedAlgorithm, array]);
+
+  // Handle Sidebar Algorithm Click
+  const handleSelectAlgorithm = useCallback((algoKey: string) => {
+    setSelectedAlgorithm(algoKey);
+    setCode(ALGORITHM_CODES[algoKey] || "// Code coming soon...");
+    setCurrentStep(0);
+    setIsPlaying(false);
+  }, []);
+
+  // Reset steps on array update
   useEffect(() => {
-    const generatedSteps = generateBubbleSortSteps(array);
-    setSteps(generatedSteps);
     setCurrentStep(0);
     setIsPlaying(false);
   }, [array]);
 
-  // Animation Timer Loop
+  // Animation Loop
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    if (!isPlaying || steps.length === 0) return;
 
-    if (isPlaying && currentStep < steps.length - 1) {
-      timer = setTimeout(() => {
-        setCurrentStep((prev) => prev + 1);
-      }, 500 - speed);
-    } else if (currentStep >= steps.length - 1) {
+    if (currentStep >= steps.length - 1) {
       setIsPlaying(false);
+      return;
     }
 
-    return () => clearTimeout(timer);
-  }, [isPlaying, currentStep, steps, speed]);
+    const delay = Math.max(20, 500 - speed);
+    const timer = setTimeout(() => {
+      setCurrentStep((prev) => prev + 1);
+    }, delay);
 
-  const handleRandomize = () => {
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentStep, steps.length, speed]);
+
+  const handleRandomize = useCallback(() => {
+    setIsPlaying(false);
     const newArr = Array.from(
       { length: 9 },
-      () => Math.floor(Math.random() * 80) + 15
+      () => Math.floor(Math.random() * 80) + 15,
     );
     setArray(newArr);
-  };
+  }, []);
 
-  const activeStep = steps[currentStep] || null;
+  const handleCodeChange = useCallback((newCode: string) => {
+    setCode(newCode);
+  }, []);
+
+  const activeStep =
+    selectedAlgorithm && steps.length > 0 ? steps[currentStep] : null;
 
   return (
     <main className="h-screen w-screen bg-[#020204] text-white flex overflow-hidden font-mono selection:bg-emerald-500/30 relative">
-      {/* FADED GRID BACKGROUND OVERLAY */}
+      {/* Background Overlay */}
       <div
         className="pointer-events-none absolute inset-0 z-0"
         style={{
@@ -85,49 +114,60 @@ export default function PlaygroundPage() {
             linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
           `,
           backgroundSize: "40px 40px",
-          maskImage: "radial-gradient(circle at center, black 40%, transparent 95%)",
-          WebkitMaskImage: "radial-gradient(circle at center, black 40%, transparent 95%)",
+          maskImage:
+            "radial-gradient(circle at center, black 40%, transparent 95%)",
+          WebkitMaskImage:
+            "radial-gradient(circle at center, black 40%, transparent 95%)",
         }}
       />
 
-      {/* SIDEBAR */}
-      <Sidebar />
+      {/* Sidebar with Props */}
+      <Sidebar
+        onSelectAlgorithm={handleSelectAlgorithm}
+        selectedAlgorithm={selectedAlgorithm}
+      />
 
-      {/* MAIN WORKSPACE */}
       <div className="flex-1 p-4 flex flex-col gap-3 overflow-hidden z-10 relative">
         {/* HEADER BAR */}
         <header className="h-12 border border-white/10 rounded-xl bg-[#080811]/80 backdrop-blur-md px-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 flex items-center gap-1.5">
-              <BarChart3 className="size-3.5" /> SORTING
+              <BarChart3 className="size-3.5" />{" "}
+              {selectedAlgorithm ? "SORTING" : "IDLE"}
             </span>
             <h1 className="text-sm font-semibold tracking-wide text-slate-200">
-              Bubble Sort Visualization
+              {selectedAlgorithm === "bubbleSort"
+                ? "Bubble Sort Visualization"
+                : "Select an Algorithm"}
             </h1>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-slate-400">
-            <span>
-              Time: <code className="text-amber-400 font-bold">O(N²)</code>
-            </span>
-            <span className="text-slate-700">|</span>
-            <span>
-              Space: <code className="text-indigo-400 font-bold">O(1)</code>
-            </span>
-          </div>
+          {selectedAlgorithm && (
+            <div className="flex items-center gap-4 text-xs text-slate-400">
+              <span>
+                Time: <code className="text-amber-400 font-bold">O(N²)</code>
+              </span>
+              <span className="text-slate-700">|</span>
+              <span>
+                Space: <code className="text-indigo-400 font-bold">O(1)</code>
+              </span>
+            </div>
+          )}
         </header>
 
-        {/* BENTO WORKSPACE PANELS */}
-        <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden">
+        {/* BENTO GRID WORKSPACE */}
+        <div className="flex-1 grid grid-cols-12 gap-3 overflow-hidden min-h-0">
           {/* VISUALIZER CANVAS + CONTROLS (LEFT 7 COLS) */}
-          <div className="col-span-7 flex flex-col gap-3 overflow-hidden h-full">
-            <div className="flex-1 overflow-hidden">
+          <div className="col-span-7 flex flex-col gap-3 overflow-hidden h-full min-h-0">
+            <div className="flex-1 overflow-hidden min-h-0">
               <VisualizerCanvas activeStep={activeStep} />
             </div>
 
             <Controls
               isPlaying={isPlaying}
-              onPlayPause={() => setIsPlaying(!isPlaying)}
+              onPlayPause={() =>
+                selectedAlgorithm && setIsPlaying((prev) => !prev)
+              }
               onStepForward={() =>
                 setCurrentStep((prev) => Math.min(steps.length - 1, prev + 1))
               }
@@ -141,25 +181,50 @@ export default function PlaygroundPage() {
               onRandomize={handleRandomize}
               speed={speed}
               onSpeedChange={setSpeed}
-              canStepForward={currentStep < steps.length - 1}
-              canStepBackward={currentStep > 0}
+              canStepForward={
+                selectedAlgorithm !== null && currentStep < steps.length - 1
+              }
+              canStepBackward={selectedAlgorithm !== null && currentStep > 0}
             />
           </div>
 
           {/* CODE EDITOR PANEL (RIGHT 5 COLS) */}
-          <div className="col-span-5 bg-[#080811] border border-white/10 rounded-2xl p-3 flex flex-col overflow-hidden">
+          <div className="col-span-5 bg-[#080811] border border-white/10 rounded-2xl p-3 flex flex-col overflow-hidden h-full min-h-0">
             <div className="px-2 py-1.5 border-b border-white/5 flex items-center justify-between text-xs text-slate-400 shrink-0">
               <span className="flex items-center gap-2">
                 <Code2 className="size-4 text-indigo-400" />
-                <span>bubble_sort.cpp</span>
+                <span>
+                  {selectedAlgorithm
+                    ? `${selectedAlgorithm}.cpp`
+                    : "editor.cpp"}
+                </span>
               </span>
               <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                Synchronized
+                {selectedAlgorithm ? "Synchronized" : "Ready"}
               </span>
+              {selectedAlgorithm && (
+                <button
+                  onClick={() => {
+                    setSelectedAlgorithm(null);
+                    setCode("// Select code from the sidebar to begin...");
+                    setCurrentStep(0);
+                    setIsPlaying(false);
+                  }}
+                  className="p-1 rounded bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-colors flex items-center gap-1 text-[11px] cursor-pointer"
+                  title="Exit algorithm & reset editor"
+                >
+                  <RotateCcw className="size-3"/>
+                  <span>Exit</span>
+                </button>
+              )}
             </div>
 
-            <div className="flex-1 overflow-hidden pt-3 min-h-0">
-              <CodeEditor code={code} setCode={setCode} />
+            <div className="flex-1 relative w-full h-full min-h-0 overflow-hidden pt-2">
+              <CodeEditor
+                code={code}
+                setCode={handleCodeChange}
+                lineHighlight={activeStep?.lineHighlight}
+              />
             </div>
           </div>
         </div>

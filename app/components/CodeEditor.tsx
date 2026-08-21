@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { Editor, OnMount } from "@monaco-editor/react";
 
 interface CodeProps {
   code?: string;
   setCode: (value: string) => void;
   language?: string;
+  lineHighlight?: number;
 }
 
 const DEFAULT_CPP_CODE = `#include <bits/stdc++.h>
@@ -20,15 +21,20 @@ int main() {
 }
 `;
 
-export default function CodeEditor({
+function CodeEditor({
   code,
   setCode,
   language = "cpp",
+  lineHighlight,
 }: CodeProps) {
+  const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+
   const wsRef = useRef<WebSocket | null>(null);
   const requestIdRef = useRef<number>(1);
   const pendingRequestsRef = useRef<Map<number, (value: any) => void>>(
-    new Map()
+    new Map(),
   );
   const versionRef = useRef<number>(1);
 
@@ -37,6 +43,9 @@ export default function CodeEditor({
   };
 
   const handleOnMount: OnMount = (editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+
     if (typeof window === "undefined") return;
 
     console.log("🔌 Connecting to clangd WebSocket...");
@@ -64,7 +73,7 @@ export default function CodeEditor({
               },
             },
           },
-        })
+        }),
       );
 
       // 2. Open Document
@@ -80,7 +89,7 @@ export default function CodeEditor({
               text: editor.getValue(),
             },
           },
-        })
+        }),
       );
     };
 
@@ -110,7 +119,7 @@ export default function CodeEditor({
               },
               contentChanges: [{ text: editor.getValue() }],
             },
-          })
+          }),
         );
       }
     };
@@ -141,7 +150,10 @@ export default function CodeEditor({
 
             const items = Array.isArray(result) ? result : result.items || [];
             const suggestions = items.map((item: any) => {
-              let labelStr = typeof item.label === "string" ? item.label : item.label.label || "";
+              let labelStr =
+                typeof item.label === "string"
+                  ? item.label
+                  : item.label.label || "";
               let insertText = item.insertText || labelStr;
 
               // Clean snippets
@@ -178,7 +190,7 @@ export default function CodeEditor({
                       character: position.column - 1,
                     },
                   },
-                })
+                }),
               );
             }
           }, 30);
@@ -191,6 +203,41 @@ export default function CodeEditor({
     });
   };
 
+  // Dynamic Line Highlighting Sync
+  useEffect(() => {
+    if (!editorRef.current || !monacoRef.current) return;
+
+    if (lineHighlight !== undefined && lineHighlight > 0) {
+      decorationsRef.current = editorRef.current.deltaDecorations(
+        decorationsRef.current,
+        [
+          {
+            range: new monacoRef.current.Range(
+              lineHighlight,
+              1,
+              lineHighlight,
+              1,
+            ),
+            options: {
+              isWholeLine: true,
+              className: "active-execution-line", // Custom CSS class for high visibility
+              glyphMarginClassName: "bg-emerald-400",
+            },
+          },
+        ],
+      );
+
+      editorRef.current.revealLineInCenterIfOutsidePath
+        ? editorRef.current.revealLineInCenterIfOutsidePath(lineHighlight)
+        : editorRef.current.revealLineInCenter(lineHighlight);
+    } else {
+      decorationsRef.current = editorRef.current.deltaDecorations(
+        decorationsRef.current,
+        [],
+      );
+    }
+  }, [lineHighlight]);
+
   useEffect(() => {
     return () => {
       if (wsRef.current) {
@@ -200,7 +247,7 @@ export default function CodeEditor({
   }, []);
 
   return (
-    <div className="w-full h-[70vh] rounded-lg overflow-hidden border border-slate-700 shadow-lg">
+    <div className="w-full h-full min-h-75 rounded-lg overflow-hidden border border-slate-700/50 shadow-lg relative">
       <Editor
         height="100%"
         theme="vs-dark"
@@ -229,3 +276,5 @@ export default function CodeEditor({
     </div>
   );
 }
+
+export default memo(CodeEditor);

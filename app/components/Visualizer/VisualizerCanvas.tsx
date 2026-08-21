@@ -42,28 +42,22 @@ export default function VisualizerCanvas({
         </span>
       </div>
 
-      <div className="flex-1 flex items-end justify-center gap-2 md:gap-3 py-6 min-h-[250px]">
+      <div className="flex-1 flex items-end justify-center gap-2 md:gap-3 py-6 min-h-62.5">
         {array.map((value, idx) => {
           const heightPercent = Math.max((value / maxValue) * 100, 10);
 
           return (
             <div
-              key={idx}
-              className="flex flex-col items-center gap-1.5 flex-1 max-w-[44px] h-full justify-end"
+              key={`bar-${idx}-${value}`}
+              className="flex flex-col items-center gap-1.5 flex-1 max-w-11 h-full justify-end"
             >
               <span className="text-[11px] font-mono text-slate-400 font-bold">
                 {value}
               </span>
 
-              <motion.div
-                layout
-                transition={{
-                  type: "spring",
-                  stiffness: 360,
-                  damping: 25,
-                }}
-                style={{ height: `${heightPercent}` }}
-                className={`w-full rounded-t-md border transition-colors duration-200 shadow-lg ${getBarColor(idx)}`}
+              <div
+                style={{ height: `${heightPercent}%` }}
+                className={`w-full rounded-t-md border transition-all duration-200 ease-out shadow-lg ${getBarColor(idx)}`}
               />
               <span className="text-[9px] font-mono text-slate-600">
                 [{idx}]

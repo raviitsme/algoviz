@@ -14,58 +14,72 @@ import {
   Sparkles,
 } from "lucide-react";
 
+interface SidebarProps {
+  onSelectAlgorithm: (algokey: string) => void;
+  selectedAlgorithm: string | null;
+}
+
 const MENU_OPTIONS = [
   {
     title: "Sorting",
     icon: <BarChart3 className="text-emerald-400 size-5 shrink-0" />,
     items: [
-      { name: "Bubble Sort" },
-      { name: "Merge Sort" },
-      { name: "Quick Sort" },
-      { name: "Heap Sort" },
+      { name: "Bubble Sort", key: "bubbleSort" }, // 👈 Added Key
+      { name: "Merge Sort", key: "mergeSort" },
+      { name: "Quick Sort", key: "quickSort" },
+      { name: "Heap Sort", key: "heapSort" },
     ],
   },
   {
     title: "Searching",
     icon: <Binary className="text-cyan-400 size-5 shrink-0" />,
-    items: [{ name: "Binary Search" }, { name: "Linear Search" }],
+    items: [
+      { name: "Binary Search", key: "binarySearch" },
+      { name: "Linear Search", key: "linearSearch" },
+    ],
   },
   {
     title: "Graph Algorithms",
     icon: <Network className="text-indigo-400 size-5 shrink-0" />,
     items: [
-      { name: "Breadth-First Search (BFS)" },
-      { name: "Depth-First Search (DFS)" },
-      { name: "Dijkstra's Algorithm" },
-      { name: "A* Search" },
+      { name: "Breadth-First Search (BFS)", key: "bfs" },
+      { name: "Depth-First Search (DFS)", key: "dfs" },
+      { name: "Dijkstra's Algorithm", key: "dijkstra" },
+      { name: "A* Search", key: "aStar" },
     ],
   },
   {
     title: "Dynamic Programming",
     icon: <Cpu className="text-amber-400 size-5 shrink-0" />,
     items: [
-      { name: "0/1 Knapsack" },
-      { name: "Longest Common Subsequence" },
-      { name: "Coin Change" },
+      { name: "0/1 Knapsack", key: "knapsack" },
+      { name: "Longest Common Subsequence", key: "lcs" },
+      { name: "Coin Change", key: "coinChange" },
     ],
   },
   {
     title: "Data Structures",
     icon: <Layers className="text-fuchsia-400 size-5 shrink-0" />,
     items: [
-      { name: "Binary Search Tree" },
-      { name: "Stack & Queue" },
-      { name: "Linked List" },
+      { name: "Binary Search Tree", key: "bst" },
+      { name: "Stack & Queue", key: "stackQueue" },
+      { name: "Linked List", key: "linkedList" },
     ],
   },
   {
     title: "Settings",
     icon: <Settings className="text-slate-400 size-5 shrink-0" />,
-    items: [{ name: "Animation Speed" }, { name: "Theme / Colors" }],
+    items: [
+      { name: "Animation Speed", key: "speed" },
+      { name: "Theme / Colors", key: "theme" },
+    ],
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  onSelectAlgorithm,
+  selectedAlgorithm,
+}: SidebarProps) {
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [openDropDown, setOpenDropDown] = useState<string | null>(null);
 
@@ -101,7 +115,7 @@ export default function Sidebar() {
               className="text-xl font-black tracking-tight whitespace-nowrap overflow-hidden"
             >
               Algo
-              <span className="bg-gradient-to-r from-emerald-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-emerald-400 via-indigo-400 to-fuchsia-500 bg-clip-text text-transparent">
                 Viz
               </span>
             </motion.span>
@@ -110,7 +124,7 @@ export default function Sidebar() {
       </div>
 
       {/* MENU NAVIGATION ITEMS */}
-      <div className="w-full h-full my-2 flex flex-col gap-1 overflow-x-hidden overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="w-full h-full my-2 flex flex-col gap-1 overflow-x-hidden overflow-y-auto scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {MENU_OPTIONS.map((menu) => (
           <div key={menu.title} className="flex flex-col">
             {/* Parent Item */}
@@ -163,18 +177,31 @@ export default function Sidebar() {
                   transition={{ duration: 0.25 }}
                   className="pl-9 pr-2 py-1 flex flex-col gap-1 overflow-hidden"
                 >
-                  {menu.items.map((subItem) => (
-                    <button
-                      key={subItem.name}
-                      onClick={() => console.log("Selected:", subItem.name)}
-                      className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-emerald-500/10 hover:text-emerald-400 text-xs text-slate-400 transition-all text-left cursor-pointer"
-                    >
-                      <Play className="size-3 text-emerald-400/70" />
-                      <span className="whitespace-normal wrap-break-word leading-tight flex-1">
-                        {subItem.name}
-                      </span>
-                    </button>
-                  ))}
+                  {menu.items.map((subItem) => {
+                    const isSelected = selectedAlgorithm === subItem.key;
+                    return (
+                      <button
+                        key={subItem.key}
+                        onClick={() => onSelectAlgorithm(subItem.key)}
+                        className={`flex items-center gap-2 py-1.5 px-2 rounded-md text-xs transition-all text-left cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30"
+                            : "text-slate-400 hover:bg-emerald-500/10 hover:text-emerald-400"
+                        }`}
+                      >
+                        <Play
+                          className={`size-3 ${
+                            isSelected
+                              ? "text-emerald-400 fill-emerald-400"
+                              : "text-emerald-400/70"
+                          }`}
+                        />
+                        <span className="whitespace-normal wrap-break-word leading-tight flex-1">
+                          {subItem.name}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </motion.div>
               )}
             </AnimatePresence>

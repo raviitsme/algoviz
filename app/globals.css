@@ -17,6 +17,14 @@
   }
 }
 
-html {
-  background-color: #5ce84c;
+
+/* Active Line Highlight styling for Monaco Editor */
+.active-execution-line {
+  background-color: rgba(16, 185, 129, 0.12) !important; /* Soft Emerald overlay (12% opacity) */
+  border-left: 3px solid #34d399 !important; /* Bright Emerald left border */
+}
+
+/* Ensure Monaco syntax token colors remain fully visible */
+.active-execution-line * {
+  background-color: transparent !important;
 }
