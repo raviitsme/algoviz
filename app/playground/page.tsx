@@ -7,7 +7,9 @@ import Sidebar from "../components/UI/Sidebar";
 import VisualizerCanvas from "../components/Visualizer/VisualizerCanvas";
 import Controls from "../components/Visualizer/Controls";
 import { AnimationStep } from "../types/visualizer";
-import generateBubbleSortSteps from "../lib/algorithms/bubbleSort";
+
+import generateBubbleSortSteps from "../lib/algorithms/sorting/bubbleSort";
+import generateMergeSortSteps from "../lib/algorithms/sorting/mergeSort";
 
 // Dynamic Import for Monaco Editor with Isolated Container
 const CodeEditor = dynamic(() => import("../components/CodeEditor"), {
@@ -34,6 +36,28 @@ const ALGORITHM_CODES: Record<string, string> = {
         }
     }
 }`,
+  mergeSort: `void merge(int arr[], int l, int m, int r) {
+    int n1 = m - l + 1;
+    int n2 = r - m;
+    int L[n1], R[n2];
+    for (int i = 0; i < n1; i++) L[i] = arr[l + i];
+    for (int j = 0; j < n2; j++) R[j] = arr[m + 1 + j];
+    int i = 0, j = 0, k = l;
+    while (i < n1 && j < n2) {
+        if (L[i] <= R[j]) arr[k++] = L[i++];
+        else arr[k++] = R[j++];
+    }
+    while (i < n1) arr[k++] = L[i++];
+    while (j < n2) arr[k++] = R[j++];
+}
+
+void mergeSort(int arr[], int l, int r) {
+    if (l >= r) return;
+    int m = l + (r - l) / 2;
+    mergeSort(arr, l, m);
+    mergeSort(arr, m + 1, r);
+    merge(arr, l, m, r);
+}`,
 };
 
 export default function PlaygroundPage() {
@@ -45,13 +69,17 @@ export default function PlaygroundPage() {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [speed, setSpeed] = useState<number>(250);
   const [code, setCode] = useState<string>(
-    "// Select an algorithm from the sidebar to begin...",
+    `// Select an algorithm from the sidebar to begin or 
+// type your desired code...`,
   );
 
   // Memoized step snapshots
   const steps: AnimationStep[] = useMemo(() => {
     if (selectedAlgorithm === "bubbleSort") {
       return generateBubbleSortSteps(array);
+    }
+    if (selectedAlgorithm === "mergeSort") {
+      return generateMergeSortSteps(array);
     }
     return [];
   }, [selectedAlgorithm, array]);
@@ -135,9 +163,9 @@ export default function PlaygroundPage() {
               <BarChart3 className="size-3.5" />{" "}
               {selectedAlgorithm ? "SORTING" : "IDLE"}
             </span>
-            <h1 className="text-sm font-semibold tracking-wide text-slate-200">
-              {selectedAlgorithm === "bubbleSort"
-                ? "Bubble Sort Visualization"
+            <h1 className="text-sm font-semibold tracking-wide text-slate-200 uppercase">
+              {selectedAlgorithm
+                ? `${selectedAlgorithm.replace(/([A-Z])/g, " $1")} Visualization`
                 : "Select an Algorithm"}
             </h1>
           </div>
@@ -145,11 +173,17 @@ export default function PlaygroundPage() {
           {selectedAlgorithm && (
             <div className="flex items-center gap-4 text-xs text-slate-400">
               <span>
-                Time: <code className="text-amber-400 font-bold">O(N²)</code>
+                Time:{" "}
+                <code className="text-amber-400 font-bold">
+                  {selectedAlgorithm === "mergeSort" ? "O(N log N)" : "O(N²)"}
+                </code>
               </span>
               <span className="text-slate-700">|</span>
               <span>
-                Space: <code className="text-indigo-400 font-bold">O(1)</code>
+                Space:{" "}
+                <code className="text-indigo-400 font-bold">
+                  {selectedAlgorithm === "mergeSort" ? "O(N)" : "O(1)"}
+                </code>
               </span>
             </div>
           )}
@@ -160,7 +194,10 @@ export default function PlaygroundPage() {
           {/* VISUALIZER CANVAS + CONTROLS (LEFT 7 COLS) */}
           <div className="col-span-7 flex flex-col gap-3 overflow-hidden h-full min-h-0">
             <div className="flex-1 overflow-hidden min-h-0">
-              <VisualizerCanvas activeStep={activeStep} />
+              <VisualizerCanvas
+                activeStep={activeStep}
+                selectedAlgorithm={selectedAlgorithm}
+              />
             </div>
 
             <Controls
@@ -206,14 +243,15 @@ export default function PlaygroundPage() {
                 <button
                   onClick={() => {
                     setSelectedAlgorithm(null);
-                    setCode("// Select code from the sidebar to begin...");
+                    setCode(`// Select an algorithm from the sidebar to begin or 
+// type your desired code...`);
                     setCurrentStep(0);
                     setIsPlaying(false);
                   }}
                   className="p-1 rounded bg-white/5 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/10 transition-colors flex items-center gap-1 text-[11px] cursor-pointer"
                   title="Exit algorithm & reset editor"
                 >
-                  <RotateCcw className="size-3"/>
+                  <RotateCcw className="size-3" />
                   <span>Exit</span>
                 </button>
               )}
