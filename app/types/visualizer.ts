@@ -4,6 +4,11 @@ export interface AnimationStep {
     comparing? : number[];           // Indices being compared (e.g. [j], [j + 1])
     highlights? : number[]           // Active comparing indices 
     swapping? : number[];            // Indices being swapped
+    pivotIndex? : number | null;     // Active pivot index for swapping
+    pointers? : {                    // Useful for rendering i and j badges below array elements
+        i? : number;
+        j? : number;
+    }
     sortedIndices? : number[];      // Already Sorted bounds
     range? : [number, number];      // Active sub array range [left, right]
     sorted? : number[];              // Indices in their sorted order
@@ -16,7 +21,10 @@ export interface AnimationStep {
 export interface TreeNode {
     id : string,
     array : number[],
-    status : "idle" | "split" | "merging" | "sorted",
+    status : "idle" | "split" | "merging" | "sorted" | "partitioning" | "pivot-placed";
+    low? : number;
+    high? : number;
+    pivotIndex? : number;
     left? : TreeNode | undefined,
     right? : TreeNode | undefined,
 }

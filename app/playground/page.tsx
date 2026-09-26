@@ -10,8 +10,10 @@ import { AnimationStep } from "../types/visualizer";
 
 import generateBubbleSortSteps from "../lib/algorithms/sorting/bubbleSort";
 import generateMergeSortSteps from "../lib/algorithms/sorting/mergeSort";
+import generateQuickSortSteps from "../lib/algorithms/sorting/quickSort";
+import generateHeapSortSteps from "../lib/algorithms/sorting/heapSort";
 
-// Dynamic Import for Monaco Editor with Isolated Container
+// Dynamic Import for Monaco Editor
 const CodeEditor = dynamic(() => import("../components/CodeEditor"), {
   ssr: false,
   loading: () => (
@@ -58,6 +60,59 @@ void mergeSort(int arr[], int l, int r) {
     mergeSort(arr, m + 1, r);
     merge(arr, l, m, r);
 }`,
+
+  quickSort: `int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low - 1;
+
+    for (int j = low; j < high; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+void quickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
+}`,
+
+  heapSort: `void heapify(vector<int>& arr, int n, int i) {
+    int largest = i;
+    int l = 2 * i + 1;
+    int r = 2 * i + 2;
+
+    if (l < n && arr[l] > arr[largest]) largest = l;
+    if (r < n && arr[r] > arr[largest]) largest = r;
+
+    if (largest != i) {
+        swap(arr[i], arr[largest]);
+        heapify(arr, n, largest);
+    }
+}
+
+void heapSort(vector<int>& arr, int n) {
+    for (int i = n / 2 - 1; i >= 0; i--)
+        heapify(arr, n, i);
+
+    for (int i = n - 1; i > 0; i--) {
+        swap(arr[0], arr[i]);
+        heapify(arr, i, 0);
+    }`,
+};
+
+// Complexity Helper for UI
+const ALGORITHM_METRICS: Record<string, { time: string; space: string }> = {
+  bubbleSort: { time: "O(N²)", space: "O(1)" },
+  mergeSort: { time: "O(N log N)", space: "O(N)" },
+  quickSort: { time: "O(N log N)", space: "O(log N)" },
+  heapSort: { time: "O(N log N)", space: "O(1)" },
 };
 
 export default function PlaygroundPage() {
@@ -67,22 +122,44 @@ export default function PlaygroundPage() {
   const [array, setArray] = useState<number[]>(DEFAULT_ARRAY);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [speed, setSpeed] = useState<number>(250);
+  const [speed, setSpeed] = useState<number>(100);
   const [code, setCode] = useState<string>(
-    `// Select an algorithm from the sidebar to begin or 
-// type your desired code...`,
+    `// Select an algorithm from the sidebar to begin or \n// type your desired code...`,
   );
 
   // Memoized step snapshots
-  const steps: AnimationStep[] = useMemo(() => {
+  const steps = useMemo<AnimationStep[]>(() => {
+    if (!selectedAlgorithm) return [];
+
+    let result: any = [];
+
     if (selectedAlgorithm === "bubbleSort") {
-      return generateBubbleSortSteps(array);
+      result = generateBubbleSortSteps(array);
+    } else if (selectedAlgorithm === "mergeSort") {
+      result = generateMergeSortSteps(array);
+    } else if (selectedAlgorithm === "quickSort") {
+      result = generateQuickSortSteps(array);
+    } else if(selectedAlgorithm === 'heapSort') {
+      result = generateHeapSortSteps(array);
     }
-    if (selectedAlgorithm === "mergeSort") {
-      return generateMergeSortSteps(array);
+
+    if (result && "steps" in result && Array.isArray(result.steps)) {
+      return result.steps;
     }
+
+    if (Array.isArray(result)) {
+      return result;
+    }
+
     return [];
   }, [selectedAlgorithm, array]);
+
+  // Safe active step extraction with index boundary checks
+  const activeStep = useMemo(() => {
+    if (!selectedAlgorithm || steps.length === 0) return null;
+    const safeIndex = Math.min(Math.max(0, currentStep), steps.length - 1);
+    return steps[safeIndex] || null;
+  }, [selectedAlgorithm, steps, currentStep]);
 
   // Handle Sidebar Algorithm Click
   const handleSelectAlgorithm = useCallback((algoKey: string) => {
@@ -92,11 +169,11 @@ export default function PlaygroundPage() {
     setIsPlaying(false);
   }, []);
 
-  // Reset steps on array update
+  // Reset steps on array update or algorithm change
   useEffect(() => {
     setCurrentStep(0);
     setIsPlaying(false);
-  }, [array]);
+  }, [array, selectedAlgorithm]);
 
   // Animation Loop
   useEffect(() => {
@@ -107,7 +184,7 @@ export default function PlaygroundPage() {
       return;
     }
 
-    const delay = Math.max(20, 500 - speed);
+    const delay = Math.max(20, 1000 - speed);
     const timer = setTimeout(() => {
       setCurrentStep((prev) => prev + 1);
     }, delay);
@@ -127,9 +204,6 @@ export default function PlaygroundPage() {
   const handleCodeChange = useCallback((newCode: string) => {
     setCode(newCode);
   }, []);
-
-  const activeStep =
-    selectedAlgorithm && steps.length > 0 ? steps[currentStep] : null;
 
   return (
     <main className="h-screen w-screen bg-[#020204] text-white flex overflow-hidden font-mono selection:bg-emerald-500/30 relative">
@@ -170,19 +244,19 @@ export default function PlaygroundPage() {
             </h1>
           </div>
 
-          {selectedAlgorithm && (
+          {selectedAlgorithm && ALGORITHM_METRICS[selectedAlgorithm] && (
             <div className="flex items-center gap-4 text-xs text-slate-400">
               <span>
                 Time:{" "}
                 <code className="text-amber-400 font-bold">
-                  {selectedAlgorithm === "mergeSort" ? "O(N log N)" : "O(N²)"}
+                  {ALGORITHM_METRICS[selectedAlgorithm].time}
                 </code>
               </span>
               <span className="text-slate-700">|</span>
               <span>
                 Space:{" "}
                 <code className="text-indigo-400 font-bold">
-                  {selectedAlgorithm === "mergeSort" ? "O(N)" : "O(1)"}
+                  {ALGORITHM_METRICS[selectedAlgorithm].space}
                 </code>
               </span>
             </div>
@@ -243,8 +317,9 @@ export default function PlaygroundPage() {
                 <button
                   onClick={() => {
                     setSelectedAlgorithm(null);
-                    setCode(`// Select an algorithm from the sidebar to begin or 
-// type your desired code...`);
+                    setCode(
+                      `// Select an algorithm from the sidebar to begin or \n// type your desired code...`,
+                    );
                     setCurrentStep(0);
                     setIsPlaying(false);
                   }}
