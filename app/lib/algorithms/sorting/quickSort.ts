@@ -16,7 +16,7 @@ export default function generateQuickSortSteps(initialArray: number[]): {
   });
 
   const treeRoot: TreeNode = {
-    id: "node-0-" + (arr.length - 1),
+    id: `node-0-${arr.length - 1}`,
     array: [...arr],
     status: "idle",
   };
@@ -32,7 +32,6 @@ export default function generateQuickSortSteps(initialArray: number[]): {
 
     if (currentNode) currentNode.status = "partitioning";
 
-    // Step: Show Pivot Selection
     steps.push({
       array: [...arr],
       pivotIndex: high,
@@ -46,7 +45,6 @@ export default function generateQuickSortSteps(initialArray: number[]): {
     });
 
     for (let j = low; j < high; j++) {
-      // Step: Compare current element with pivot
       steps.push({
         array: [...arr],
         comparing: [j, high],
@@ -64,10 +62,8 @@ export default function generateQuickSortSteps(initialArray: number[]): {
         const val1 = arr[i];
         const val2 = arr[j];
 
-        // Swap elements
         [arr[i], arr[j]] = [arr[j], arr[i]];
 
-        // Step: Swap execution
         steps.push({
           array: [...arr],
           swapping: [i, j],
@@ -83,11 +79,8 @@ export default function generateQuickSortSteps(initialArray: number[]): {
       }
     }
 
-    // Place pivot in correct position
-    const valToSwap1 = arr[i + 1];
-    const valToSwap2 = arr[high];
-    [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
     const pivotPos = i + 1;
+    [arr[pivotPos], arr[high]] = [arr[high], arr[pivotPos]];
     sortedIndices.add(pivotPos);
 
     if (currentNode) {
@@ -95,7 +88,6 @@ export default function generateQuickSortSteps(initialArray: number[]): {
       currentNode.pivotIndex = pivotPos;
     }
 
-    // Step: Pivot placement
     steps.push({
       array: [...arr],
       swapping: [pivotPos, high],
@@ -116,9 +108,10 @@ export default function generateQuickSortSteps(initialArray: number[]): {
       const parentKey = `${low}-${high}`;
       const parentNode = treeNodeMap.get(parentKey);
 
+      // 1. Execute Partitioning
       const pi = partition(low, high);
 
-      // Create Left and Right subtree references in the execution map
+      // 2. Build Subtree nodes before recursing so tree renders properly
       if (pi - 1 >= low && parentNode) {
         parentNode.left = {
           id: `node-${low}-${pi - 1}`,
@@ -144,6 +137,15 @@ export default function generateQuickSortSteps(initialArray: number[]): {
       const singleNodeKey = `${low}-${high}`;
       const singleNode = treeNodeMap.get(singleNodeKey);
       if (singleNode) singleNode.status = "sorted";
+
+      steps.push({
+        array: [...arr],
+        sortedIndices: Array.from(sortedIndices),
+        range: [low, high],
+        description: `Single element sub-array [${arr[low]}] at index ${low} is inherently sorted.`,
+        treeData: cloneTree(treeRoot),
+        activeNodeID: singleNode?.id,
+      });
     }
   }
 
