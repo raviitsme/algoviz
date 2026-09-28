@@ -89,7 +89,7 @@ export default function Hero() {
             <div className="relative w-full max-w-sm sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl">
               {/* Contextual Card Glow Effect targeting the theme spectrum */}
               <div className="absolute inset-0 -z-10 rounded-[3rem] bg-linear-to-r from-emerald-500/10 via-indigo-500/10 to-fuchsia-500/10 blur-[100px]" />
-              <div className="absolute inset-0 -z-20 scale-105 rounded-[2rem] border border-zinc-800/60" />
+              <div className="absolute inset-0 -z-20 scale-105 rounded-4xl border border-zinc-800/60" />
               <div className="relative transition duration-500">
                 <IDE
                   codeLines={SAMPLE_CODE_LINES}

@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { AnimationStep } from "@/app/types/visualizer";
 import MergeSortTreeCanvas from "./MergeSortTreeCanvas";
+import HeapSortTreeCanvas from "./HeapSortTreeCanvas";
+
 
 interface VisualizerCanvasProps {
   activeStep: AnimationStep | null;
@@ -42,6 +44,10 @@ export default function VisualizerCanvas({
         </div>
       </div>
     );
+  }
+
+  if(selectedAlgorithm === "heapSort") {
+    return <HeapSortTreeCanvas step={activeStep}/>
   }
 
   // 2. STANDARD ARRAY BARS CANVAS (QuickSort, BubbleSort, etc.)
